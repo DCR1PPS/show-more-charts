@@ -2541,6 +2541,31 @@
 				buf += '<p id="statoptimizer"></p>';
 			}
 
+			// Radar chart
+			buf += '<div><canvas id="statRadar"></canvas></div>';
+			buf += '<script>' +
+				"const ctx = document.getElementById('statRadar');" +
+				'new Chart(ctx, {' +
+				"type: 'radar'," +
+				'data: {' +
+				"labels: ['HP', 'Attack', 'Defense', 'Sp. Atk.', 'Sp. Def.', 'Speed']," +
+				"datasets: [{" +
+				"data: [";
+			for (var i in stats) {
+				stats[i] = this.getStat(i);
+				var width = stats[i] * 180 / 504;
+				if (i === 'hp') width = Math.floor(stats[i] * 180 / 704);
+				if (width > 179) width = 179;
+				buf += Math.floor(width) + ',';
+			}
+			buf += "]," +
+				'fill: true,' +
+				"borderWidth: 1" +
+				'}]' +
+				'},' +
+				'});' +
+				'</script>';
+
 			buf += '</div>';
 			this.$chart.html(buf);
 			this.checkStatOptimizations();
