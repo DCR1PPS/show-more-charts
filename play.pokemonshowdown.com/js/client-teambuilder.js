@@ -2551,7 +2551,7 @@
 				if (width > 179) width = 179;
 				buf += Math.floor(width) + ',';
 			}
-			buf += "],fill: true,borderWidth: 1}]},});</script>";
+			buf += "],fill: true,borderWidth: 1, }]}, options: {scales: {r: {max: 180, beginAtZero: true,}}}});</script>";
 
 			buf += '</div>';
 			this.$chart.html(buf);
