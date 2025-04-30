@@ -47,7 +47,7 @@ export interface BattleRequestActivePokemon {
 	canMegaEvoX?: boolean;
 	canMegaEvoY?: boolean;
 	canUltraBurst?: boolean;
-	canTerastallize?: boolean;
+	canTerastallize?: string;
 	trapped?: boolean;
 	maybeTrapped?: boolean;
 }
@@ -86,12 +86,16 @@ interface BattleMoveChoice {
 	/** 1-based move */
 	move: number;
 	targetLoc: number;
+	// gen 6
 	mega: boolean;
 	megax: boolean;
 	megay: boolean;
-	ultra: boolean;
-	max: boolean;
+	// gen 7
 	z: boolean;
+	ultra: boolean;
+	// gen 8
+	max: boolean;
+	// gen 9
 	tera: boolean;
 }
 interface BattleShiftChoice {
@@ -447,14 +451,21 @@ export class BattleChoiceBuilder {
 		switch (choice.choiceType) {
 		case 'move':
 			const target = choice.targetLoc ? ` ${choice.targetLoc > 0 ? '+' : ''}${choice.targetLoc}` : ``;
-			const boost = `${choice.max ? ' max' : ''}${choice.mega ? ' mega' : ''}${choice.z ? ' zmove' : ''}${choice.tera ? ' terastallize' : ''}`;
-			return `move ${choice.move}${boost}${target}`;
+			return `move ${choice.move}${this.moveSpecial(choice)}${target}`;
 		case 'switch':
 		case 'team':
 			return `${choice.choiceType} ${choice.targetPokemon}`;
 		case 'shift':
 			return `shift`;
 		}
+	}
+	moveSpecial(choice: BattleMoveChoice) {
+		return (choice.max ? ' max' : '') +
+			(choice.mega ? ' mega' : '') +
+			(choice.megax ? ' megax' : '') +
+			(choice.megay ? ' megay' : '') +
+			(choice.z ? ' zmove' : '') +
+			(choice.tera ? ' terastallize' : '');
 	}
 
 	/**

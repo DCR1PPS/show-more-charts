@@ -592,7 +592,7 @@ export class Pokemon implements PokemonDetails, PokemonHealth {
 		if (pokemon.maxhp === 100) return `${pokemon.hp}%`;
 		if (pokemon.maxhp !== 48) return (100 * pokemon.hp / pokemon.maxhp).toFixed(precision) + '%';
 		let range = Pokemon.getPixelRange(pokemon.hp, pokemon.hpcolor);
-		return Pokemon.getFormattedRange(range, precision, '–');
+		return Pokemon.getFormattedRange(range, precision, '\u2013');
 	}
 	destroy() {
 		if (this.sprite) this.sprite.destroy();
@@ -840,6 +840,8 @@ export class Side {
 		const effect = Dex.getEffect(kwArgs.from);
 		if (['batonpass', 'zbatonpass', 'shedtail'].includes(effect.id)) {
 			pokemon.copyVolatileFrom(this.lastPokemon!, effect.id === 'shedtail' ? 'shedtail' : false);
+		} else if (this.battle.tier.includes(`Relay Race`) && !effect.id) {
+			if (this.lastPokemon && !this.lastPokemon.fainted) pokemon.copyVolatileFrom(this.lastPokemon, false);
 		}
 
 		this.battle.scene.animSummon(pokemon, slot);
@@ -895,13 +897,15 @@ export class Side {
 	}
 	switchOut(pokemon: Pokemon, kwArgs: KWArgs, slot = pokemon.slot) {
 		const effect = Dex.getEffect(kwArgs.from);
-		if (!['batonpass', 'zbatonpass', 'shedtail'].includes(effect.id)) {
+		if (!['batonpass', 'zbatonpass', 'shedtail'].includes(effect.id) &&
+			!(this.battle.tier.includes(`Relay Race`) && !effect.id)) {
 			pokemon.clearVolatile();
 		} else {
 			pokemon.removeVolatile('transform' as ID);
 			pokemon.removeVolatile('formechange' as ID);
 		}
-		if (!['batonpass', 'zbatonpass', 'shedtail', 'teleport'].includes(effect.id)) {
+		if (!['batonpass', 'zbatonpass', 'shedtail', 'teleport'].includes(effect.id) &&
+			!(this.battle.tier.includes(`Relay Race`) && !effect.id)) {
 			this.battle.log(['switchout', pokemon.ident], { from: effect.id });
 		}
 		pokemon.statusData.toxicTurns = 0;
@@ -1135,7 +1139,7 @@ export class Battle {
 		$frame?: JQuery,
 		$logFrame?: JQuery,
 		id?: ID,
-		log?: string[] | string,
+		log?: string[] | string | null,
 		paused?: boolean,
 		isReplay?: boolean,
 		debug?: boolean,
@@ -1662,6 +1666,9 @@ export class Battle {
 			if (args[0] === '-damage' && nextArgs[0] === '-damage' && kwArgs.from && kwArgs.from === nextKwargs.from) {
 				kwArgs.then = '.';
 			}
+			if (args[0] === '-heal' && nextArgs[0] === '-heal' && kwArgs.from && kwArgs.from === nextKwargs.from) {
+				kwArgs.then = '.';
+			}
 			if (args[0] === '-ability' && (args[2] === 'Intimidate' || args[3] === 'boost')) {
 				kwArgs.then = '.';
 			}
@@ -1990,7 +1997,7 @@ export class Battle {
 			let poke = this.getPokemon(args[1]);
 			if (poke) {
 				this.scene.resultAnim(poke, 'Super-effective', 'bad');
-				if (window.Config?.server?.afd) {
+				if (Dex.afdMode === true) {
 					// April Fool's 2018
 					this.scene.runOtherAnim('hitmark' as ID, [poke]);
 				}
@@ -3503,7 +3510,7 @@ export class Battle {
 				return;
 			} else if (args[1].endsWith(' seconds left.')) {
 				let hasIndex = args[1].indexOf(' has ');
-				let userid = window.app?.user?.get('userid');
+				let userid = window.app?.user?.get('userid') || window.PS?.user.userid;
 				if (toID(args[1].slice(0, hasIndex)) === userid) {
 					this.kickingInactive = parseInt(args[1].slice(hasIndex + 5), 10) || true;
 				}

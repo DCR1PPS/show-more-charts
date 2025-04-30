@@ -8,10 +8,10 @@
 import { PS, PSRoom, type Team } from "./client-main";
 import { PSPanelWrapper, PSRoomPanel } from "./panels";
 import { TeamBox, TeamFolder } from "./panel-teamdropdown";
-import { PSUtils, type ID } from "./battle-dex";
+import { Dex, PSUtils, type ID } from "./battle-dex";
 
 class TeambuilderRoom extends PSRoom {
-	readonly DEFAULT_FORMAT = 'gen8' as ID;
+	readonly DEFAULT_FORMAT = `gen${Dex.gen}` as ID;
 
 	/**
 	 * - `""` - all
@@ -23,38 +23,27 @@ class TeambuilderRoom extends PSRoom {
 	curFolder = '';
 	curFolderKeep = '';
 
-	/**
-	 * @return true to prevent line from being sent to server
-	 */
-	override handleMessage(line: string) {
-		if (!line.startsWith('/') || line.startsWith('//')) return false;
-		const spaceIndex = line.indexOf(' ');
-		const cmd = spaceIndex >= 0 ? line.slice(1, spaceIndex) : line.slice(1);
-		const target = spaceIndex >= 0 ? line.slice(spaceIndex + 1) : '';
-		switch (cmd) {
-		case 'newteam': {
+	override clientCommands = this.parseClientCommands({
+		'newteam'(target) {
 			if (target === 'bottom') {
 				PS.teams.push(this.createTeam());
 			} else {
 				PS.teams.unshift(this.createTeam());
 			}
 			this.update(null);
-			return true;
-		} case 'deleteteam': {
+		},
+		'deleteteam'(target) {
 			const team = PS.teams.byKey[target];
 			if (team) PS.teams.delete(team);
 			this.update(null);
-			return true;
-		} case 'undeleteteam': {
+		},
+		'undeleteteam'() {
 			PS.teams.undelete();
 			this.update(null);
-			return true;
-		}
-		}
-
-		// unrecognized command
-		alert(`Unrecognized command: ${line}`);
-		return true;
+		},
+	});
+	override sendDirect(msg: string): void {
+		PS.alert(`Unrecognized command: ${msg}`);
 	}
 
 	createTeam(copyFrom?: Team): Team {
@@ -83,6 +72,11 @@ class TeambuilderRoom extends PSRoom {
 }
 
 class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
+	static readonly id = 'teambuilder';
+	static readonly routes = ['teambuilder'];
+	static readonly Model = TeambuilderRoom;
+	static readonly icon = <i class="fa fa-pencil-square-o" aria-hidden></i>;
+	static readonly title = 'Teambuilder';
 	selectFolder = (e: MouseEvent) => {
 		const room = this.props.room;
 		let elem = e.target as HTMLElement | null;
@@ -147,7 +141,7 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 		let renderedFormatFolders = [
 			<div class="foldersep"></div>,
 			<TeamFolder cur={false} value="+">
-				<i class="fa fa-plus"></i><em>(add format folder)</em>
+				<i class="fa fa-plus" aria-hidden></i><em>(add format folder)</em>
 			</TeamFolder>,
 		];
 
@@ -194,7 +188,7 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 			{renderedFolders}
 			<div class="foldersep"></div>
 			<TeamFolder cur={false} value="++">
-				<i class="fa fa-plus"></i><em>(add folder)</em>
+				<i class="fa fa-plus" aria-hidden></i><em>(add folder)</em>
 			</TeamFolder>
 
 			<div class="folderlistafter"></div>
@@ -229,46 +223,42 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 			<div class="teampane">
 				{filterFolder ? (
 					<h2>
-						<i class="fa fa-folder-open"></i> {filterFolder} {}
+						<i class="fa fa-folder-open" aria-hidden></i> {filterFolder} {}
 						<button class="button small" style="margin-left:5px" name="renameFolder">
-							<i class="fa fa-pencil"></i> Rename
+							<i class="fa fa-pencil" aria-hidden></i> Rename
 						</button> {}
 						<button class="button small" style="margin-left:5px" name="promptDeleteFolder">
-							<i class="fa fa-times"></i> Remove
+							<i class="fa fa-times" aria-hidden></i> Remove
 						</button>
 					</h2>
 				) : filterFolder === '' ? (
-					<h2><i class="fa fa-folder-open-o"></i> Teams not in any folders</h2>
+					<h2><i class="fa fa-folder-open-o" aria-hidden></i> Teams not in any folders</h2>
 				) : filterFormat ? (
-					<h2><i class="fa fa-folder-open-o"></i> {filterFormat} <small>({teams.length})</small></h2>
+					<h2><i class="fa fa-folder-open-o" aria-hidden></i> {filterFormat} <small>({teams.length})</small></h2>
 				) : (
 					<h2>All Teams <small>({teams.length})</small></h2>
 				)}
 				<p>
-					<button name="cmd" value="/newteam" class="button big"><i class="fa fa-plus-circle"></i> New Team</button>
+					<button data-cmd="/newteam" class="button big"><i class="fa fa-plus-circle" aria-hidden></i> New Team</button>
 				</p>
 				<ul class="teamlist">
 					{teams.map(team => team ? (
 						<li key={team.key}>
 							<TeamBox team={team} /> {}
-							<button name="cmd" value={`/deleteteam ${team.key}`}><i class="fa fa-trash"></i> Delete</button>
+							<button data-cmd={`/deleteteam ${team.key}`}><i class="fa fa-trash" aria-hidden></i> Delete</button>
 						</li>
 					) : (
 						<li key="undelete">
-							<button name="cmd" value="/undeleteteam"><i class="fa fa-undo"></i> Undo delete</button>
+							<button data-cmd="/undeleteteam"><i class="fa fa-undo" aria-hidden></i> Undo delete</button>
 						</li>
 					))}
 				</ul>
 				<p>
-					<button name="cmd" value="/newteam bottom" class="button"><i class="fa fa-plus-circle"></i> New Team</button>
+					<button data-cmd="/newteam bottom" class="button"><i class="fa fa-plus-circle" aria-hidden></i> New Team</button>
 				</p>
 			</div>
 		</PSPanelWrapper>;
 	}
 }
 
-PS.roomTypes['teambuilder'] = {
-	Model: TeambuilderRoom,
-	Component: TeambuilderPanel,
-	title: "Teambuilder",
-};
+PS.addRoomType(TeambuilderPanel);

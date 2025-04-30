@@ -268,6 +268,14 @@ export const Dex = new class implements ModdedDex {
 	loadedSpriteData = { xy: 1, bw: 0 };
 	moddedDexes: { [mod: string]: ModdedDex } = {};
 
+	/**
+	 * April Fools' Day setting:
+	 * * `true` = FULL, all jokes on
+	 * * `'sprites'` = SPRITES, only sprites and taunts
+	 * * `false | null | undefined` = OFF
+	 */
+	afdMode?: boolean | 'sprites';
+
 	mod(modid: ID): ModdedDex {
 		if (modid === 'gen9') return this;
 		if (!window.BattleTeambuilderTable) return this;
@@ -318,7 +326,7 @@ export const Dex = new class implements ModdedDex {
 
 	prefs(prop: string) {
 		// @ts-expect-error this is what I get for calling it Storage...
-		return window.Storage?.prefs?.(prop);
+		return window.Storage?.prefs ? window.Storage.prefs(prop) : window.PS?.prefs?.[prop];
 	}
 
 	getShortName(name: string) {
@@ -682,7 +690,7 @@ export const Dex = new class implements ModdedDex {
 		if (options.shiny && mechanicsGen > 1) dir += '-shiny';
 
 		// April Fool's 2014
-		if (Dex.prefs('afd') !== false && (window.Config?.server?.afd || Dex.prefs('afd') || options.afd)) {
+		if (Dex.afdMode || options.afd) {
 			// Explicit false check above means AFD will be off if the user disables it - no matter what
 			dir = 'afd' + dir;
 			spriteData.url += dir + '/' + name + '.png';
@@ -823,8 +831,8 @@ export const Dex = new class implements ModdedDex {
 		if (pokemon.species && !spriteid) {
 			spriteid = species.spriteid || toID(pokemon.species);
 		}
-		if (!species.exists) return { spriteDir: 'sprites/gen5', spriteid: '0', x: 10, y: 5 };
-		if (window.Config?.server?.afd || Dex.prefs('afd')) {
+		if (species.exists === false) return { spriteDir: 'sprites/gen5', spriteid: '0', x: 10, y: 5 };
+		if (Dex.afdMode) {
 			return {
 				spriteid,
 				spriteDir: 'sprites/afd',
